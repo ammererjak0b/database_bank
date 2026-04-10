@@ -3,9 +3,6 @@
 -- Jakob & Alex, SS 2026
 -- ============================================
 -- Angepasst an neue DDL-Struktur:
---   (1) withdrawel -> withdrawal
---   (2) PAYMENT_TRANSACTION: external_* -> target_*, plus target_account_iban
---   (3) STOCK_TRANSACTION: depot_iban FK
 -- ============================================
 
 -- DELETES
@@ -179,10 +176,6 @@ INSERT ALL
         VALUES (7, DATE '2025-02-22', 'Microsoft Aktienkauf',    -415.20, TIMESTAMP '2025-02-22 14:00:00', NULL, 'Aktienkauf Microsoft', 8, 'AT103200000000123456', 'S')
 SELECT * FROM DUAL;
 
--- Aenderung (2): external_iban/bic -> target_iban/bic + target_account_iban
--- TX 1 (extern, Gehalt aus DE):         target_account_iban = NULL
--- TX 2 (extern, Miete):                  target_account_iban = NULL
--- TX 5 (extern, Gehalt Alex aus DE):     target_account_iban = NULL
 INSERT ALL
     INTO PAYMENT_TRANSACTION (transaction_id, target_iban, target_bic, target_account_iban)
         VALUES (1, 'DE89370400440532013000', 'COBADEFFXXX', NULL)
@@ -192,8 +185,6 @@ INSERT ALL
         VALUES (5, 'DE89370400440532013001', 'COBADEFFXXX', NULL)
 SELECT * FROM DUAL;
 
--- Aenderung (3): STOCK_TRANSACTION braucht jetzt depot_iban
--- Jakobs Aktienkaeufe gehen in sein Aktiendepot AT103200000000123458
 INSERT ALL
     INTO STOCK_TRANSACTION (transaction_id, stock_price, stock_quantity, STOCK_isin, depot_iban)
         VALUES (6, 178.50, 2, 'US0378331005', 'AT103200000000123458')
