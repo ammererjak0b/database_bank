@@ -3,10 +3,10 @@
 -- Jakob & Alex, SS 2026
 -- ============================================
 -- Aenderungen gegenueber vorheriger Version:
---   (2) PAYMENT_TRANSACTION: target_iban/bic + FK auf ACCOUNT
---   (3) STOCK_TRANSACTION: direkter FK auf Depot
---   (4) Depot-Typ-Check Trigger fuer STOCK_TRANSACTION
---   (5) Doppelte Trigger am Scriptende entfernt
+--   (1) PAYMENT_TRANSACTION: target_iban/bic + FK auf ACCOUNT
+--   (2) STOCK_TRANSACTION: direkter FK auf Depot
+--   (3) Depot-Typ-Check Trigger fuer STOCK_TRANSACTION
+--   (4) Doppelte Trigger am Scriptende entfernt
 -- ============================================
 
 CREATE TABLE LOCATION
@@ -130,9 +130,6 @@ CREATE TABLE STOCK
 ALTER TABLE STOCK
     ADD CONSTRAINT STOCK_PK PRIMARY KEY ( isin );
 
--- Aenderung (1):
--- Feedback: Spelling "withdrawel" falsch
--- Loesung:  -> "withdrawal_sum" / "withdrawal_count"
 CREATE TABLE BANK_STATEMENT
     (
      statement_id                INTEGER         NOT NULL,
@@ -224,7 +221,7 @@ ALTER TABLE TRANSACTIONS
     ADD CONSTRAINT TRANS_BANK_STMT_FK FOREIGN KEY ( BANK_STATEMENT_statement_id )
         REFERENCES BANK_STATEMENT ( statement_id );
 
--- Aenderung (2):
+-- Aenderung (1):
 -- Feedback: interne Transaktionen nicht abbildbar, "external" zu eng gefasst
 -- Loesung:  - external_iban/bic -> target_iban/bic (abstraktere Benennung)
 --           - neuer optionaler FK target_account_iban auf ACCOUNT
@@ -249,7 +246,7 @@ ALTER TABLE PAYMENT_TRANSACTION
     ADD CONSTRAINT TARGET_ACCOUNT_IBAN_FK FOREIGN KEY ( target_account_iban )
         REFERENCES ACCOUNT ( iban );
 
--- Aenderung (3):
+-- Aenderung (2):
 -- Feedback: Zuordnung Depot <-> Aktientransaktion nur ueber Umweg Kunde
 -- Loesung:  - direkter FK depot_iban auf ACCOUNT (Aktiendepot)
 --           - Queries "alle Trades eines Depots" jetzt ohne Join-Umweg
@@ -318,7 +315,7 @@ BEGIN
 END;
 /
 
--- Aenderung (4):
+-- Aenderung (3):
 -- Feedback (Folge aus 3): FK depot_iban zeigt auf ACCOUNT-Supertyp,
 --          kein DB-seitiger Schutz dass wirklich ein Aktiendepot referenziert wird
 -- Loesung: Trigger prueft account_type = 'AKTIENDEPOT' bei Insert/Update
