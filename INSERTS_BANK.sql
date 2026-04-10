@@ -1,5 +1,14 @@
---DELETES
+-- ============================================
+-- Bank Project - Testdaten (DML) - Updated
+-- Jakob & Alex, SS 2026
+-- ============================================
+-- Angepasst an neue DDL-Struktur:
+--   (1) withdrawel -> withdrawal
+--   (2) PAYMENT_TRANSACTION: external_* -> target_*, plus target_account_iban
+--   (3) STOCK_TRANSACTION: depot_iban FK
+-- ============================================
 
+-- DELETES
 DELETE FROM DEPOT_POSITION;
 DELETE FROM STOCK_TRANSACTION;
 DELETE FROM PAYMENT_TRANSACTION;
@@ -13,8 +22,21 @@ DELETE FROM CUSTOMER_GROUP;
 DELETE FROM ADRESS;
 DELETE FROM LOCATION;
 
+DROP SEQUENCE SEQ_STATEMENT_ID;
+CREATE SEQUENCE SEQ_STATEMENT_ID START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
+
+
+
+DELETE FROM DEPOT_POSITION;
+DELETE FROM STOCK_TRANSACTION;
+DELETE FROM PAYMENT_TRANSACTION;
+DELETE FROM TRANSACTIONS;
+DELETE FROM BANK_STATEMENT;
+DELETE FROM ACCOUNT;
 COMMIT;
 
+
+COMMIT;
 
 INSERT ALL
     INTO LOCATION (zip_code, city, country) VALUES ('5400', 'Hallein', 'Austria')
@@ -63,6 +85,9 @@ SELECT * FROM DUAL;
 -- ACCOUNT: einzeln eingefuegt damit der Trigger TRG_ACCOUNT_INIT_STATEMENT
 -- fuer jeden Account einen ersten leeren Kontoauszug erstellt.
 -- INSERT ALL wuerde den Row-Level Trigger nicht feuern.
+
+SELECT * FROM USER_ERRORS WHERE NAME = 'TRG_ACCOUNT_INIT_STATEMENT';
+
 INSERT INTO ACCOUNT (iban, creation_date, designation, balance, account_type, CUSTOMER_customer_id, ACCOUNT_iban)
 VALUES ('AT103200000000123456', DATE '2023-01-15', 'Hauptkonto Jakob', 2500.00, 'GIROKONTO', 1, NULL);
 
@@ -105,24 +130,32 @@ SELECT * FROM DUAL;
 -- Zweiter Auszug fuer Jakobs Girokonto (Vorgaenger statement_id = 1)
 -- Zweiter Auszug fuer Alex Girokonto (Vorgaenger statement_id = 4)
 -- Die IDs 1-7 wurden vom Trigger bei Kontoanlage vergeben
+-- Aenderung (1): withdrawel -> withdrawal
 INSERT INTO BANK_STATEMENT (
     statement_id, start_date, end_date,
     beginning_balance, ending_balance,
     ACCOUNT_iban, BANK_STATEMENT_statement_id,
     status, deposit_sum, deposit_count,
-    withdrawel_sum, withdrawel_count)
+    withdrawal_sum, withdrawal_count)
 VALUES (
     8, DATE '2025-02-01', DATE '2025-02-28',
     3000.00, 2500.00,
     'AT103200000000123456', 1,
     'C', 0.00, 0, 500.00, 2);
 
+SELECT statement_id, ACCOUNT_iban
+FROM BANK_STATEMENT
+ORDER BY statement_id;
+
+SELECT iban, account_type FROM ACCOUNT;
+SELECT trigger_name, status FROM user_triggers WHERE trigger_name = 'TRG_ACCOUNT_INIT_STATEMENT';
+
 INSERT INTO BANK_STATEMENT (
     statement_id, start_date, end_date,
     beginning_balance, ending_balance,
     ACCOUNT_iban, BANK_STATEMENT_statement_id,
     status, deposit_sum, deposit_count,
-    withdrawel_sum, withdrawel_count)
+    withdrawal_sum, withdrawal_count)
 VALUES (
     9, DATE '2025-02-01', NULL,
     1800.00, 1800.00,
@@ -146,20 +179,26 @@ INSERT ALL
         VALUES (7, DATE '2025-02-22', 'Microsoft Aktienkauf',    -415.20, TIMESTAMP '2025-02-22 14:00:00', NULL, 'Aktienkauf Microsoft', 8, 'AT103200000000123456', 'S')
 SELECT * FROM DUAL;
 
+-- Aenderung (2): external_iban/bic -> target_iban/bic + target_account_iban
+-- TX 1 (extern, Gehalt aus DE):         target_account_iban = NULL
+-- TX 2 (extern, Miete):                  target_account_iban = NULL
+-- TX 5 (extern, Gehalt Alex aus DE):     target_account_iban = NULL
 INSERT ALL
-    INTO PAYMENT_TRANSACTION (transaction_id, external_iban, external_bic)
-        VALUES (1, 'DE89370400440532013000', 'COBADEFFXXX')
-    INTO PAYMENT_TRANSACTION (transaction_id, external_iban, external_bic)
-        VALUES (2, 'AT103200000000999999', 'RZBAATWW123')
-    INTO PAYMENT_TRANSACTION (transaction_id, external_iban, external_bic)
-        VALUES (5, 'DE89370400440532013001', 'COBADEFFXXX')
+    INTO PAYMENT_TRANSACTION (transaction_id, target_iban, target_bic, target_account_iban)
+        VALUES (1, 'DE89370400440532013000', 'COBADEFFXXX', NULL)
+    INTO PAYMENT_TRANSACTION (transaction_id, target_iban, target_bic, target_account_iban)
+        VALUES (2, 'AT103200000000999999', 'RZBAATWW123', NULL)
+    INTO PAYMENT_TRANSACTION (transaction_id, target_iban, target_bic, target_account_iban)
+        VALUES (5, 'DE89370400440532013001', 'COBADEFFXXX', NULL)
 SELECT * FROM DUAL;
 
+-- Aenderung (3): STOCK_TRANSACTION braucht jetzt depot_iban
+-- Jakobs Aktienkaeufe gehen in sein Aktiendepot AT103200000000123458
 INSERT ALL
-    INTO STOCK_TRANSACTION (transaction_id, stock_price, stock_quantity, STOCK_isin)
-        VALUES (6, 178.50, 2, 'US0378331005')
-    INTO STOCK_TRANSACTION (transaction_id, stock_price, stock_quantity, STOCK_isin)
-        VALUES (7, 415.20, 1, 'US5949181045')
+    INTO STOCK_TRANSACTION (transaction_id, stock_price, stock_quantity, STOCK_isin, depot_iban)
+        VALUES (6, 178.50, 2, 'US0378331005', 'AT103200000000123458')
+    INTO STOCK_TRANSACTION (transaction_id, stock_price, stock_quantity, STOCK_isin, depot_iban)
+        VALUES (7, 415.20, 1, 'US5949181045', 'AT103200000000123458')
 SELECT * FROM DUAL;
 
 INSERT ALL
